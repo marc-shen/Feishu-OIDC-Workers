@@ -61,44 +61,21 @@ export default {
       });
     }
 
-    // 授权端点 - 重定向到飞书登录
+    // auth端点：重定向到飞书登录
     if (url.pathname === '/auth') {
       const feishuAuthUrl = new URL('https://open.feishu.cn/open-apis/authen/v1/index');
       feishuAuthUrl.searchParams.set('app_id', env.FEISHU_APP_ID);
       feishuAuthUrl.searchParams.set('redirect_uri', `${env.ISSUER_BASE_URL}/callback`);
-      // 保存原始参数用于回调时使用
-      feishuAuthUrl.searchParams.set('state', url.searchParams.get('state') || '');
-
+      feishuAuthUrl.searchParams.set('state', url.searchParams.get('state')!);
       return Response.redirect(feishuAuthUrl.toString());
     }
 
-    // 处理飞书回调
+    // callback端点：接收飞书的code并转发给客户端
     if (url.pathname === '/callback') {
-      const code = url.searchParams.get('code')!;
+      const code = url.searchParams.get('code')!;  // 这是飞书生成的code
       const state = url.searchParams.get('state')!;
 
-      // 获取飞书访问令牌
-      const tokenResponse = await fetch('https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          app_id: env.FEISHU_APP_ID,
-          app_secret: env.FEISHU_APP_SECRET
-        })
-      });
-
-      const { app_access_token } = await tokenResponse.json();
-
-      // 获取用户信息
-      const userInfoResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/user_info', {
-        headers: {
-          'Authorization': `Bearer ${app_access_token}`
-        }
-      });
-
-      const userInfo = await userInfoResponse.json();
-
-      // 重定向回原始客户端，带上授权码和state
+      // 把飞书的code转发给客户端
       const redirectUrl = new URL(url.searchParams.get('redirect_uri')!);
       redirectUrl.searchParams.set('code', code);
       redirectUrl.searchParams.set('state', state);
@@ -107,20 +84,56 @@ export default {
     }
 
     // token端点
+    // 用飞书的code换取token，并生成OIDC所需的token
     if (url.pathname === '/token' && request.method === 'POST') {
       const formData = await request.formData();
-      const code = formData.get('code');
+      const code = formData.get('code');  // 这是从客户端收到的飞书code
       const clientId = formData.get('client_id') as string;
       const nonce = formData.get('nonce') as string | null | undefined;
 
-      // 用code换取飞书的access_token和用户信息
-      // ... 与callback中相同的token和用户信息获取逻辑 ...
+      // 1. 先获取飞书的app_access_token
+      const appTokenResponse = await fetch('https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: env.FEISHU_APP_ID,
+          app_secret: env.FEISHU_APP_SECRET,
+        })
+      });
+      const { app_access_token } = await appTokenResponse.json() as { app_access_token: string };
 
-      // 返回OIDC所需的令牌
+      // 2. 用飞书的code换取用户access_token
+      const userTokenResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/access_token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${app_access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          code  // 用飞书的code换token
+        })
+      });
+      const { access_token } = await userTokenResponse.json() as { access_token: string };
+
+      // 3. 用access_token获取用户信息
+      const userInfoResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/user_info', {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
+      });
+      const userInfo = await userInfoResponse.json();
+
+      // 4. 生成OIDC的响应
       return new Response(JSON.stringify({
-        access_token: app_access_token,
+        access_token: access_token,        // 使用飞书的access_token
         token_type: 'Bearer',
-        id_token: await generateIdToken(userInfo, clientId, nonce, env),
+        id_token: await generateIdToken(   // 我们生成的JWT格式的id_token
+          userInfo,
+          clientId,
+          nonce,
+          env
+        ),
         expires_in: 3600
       }), {
         headers: { 'Content-Type': 'application/json' }
