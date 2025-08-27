@@ -1,10 +1,30 @@
 import * as jose from 'jose';
+import {
+  FeiShuEndpoints,
+} from '@/types/feishu';
+
+import type {
+  FeiShuAuthRequestParams,
+  FeiShuAccessTokenRequest,
+  FeiShuAccessTokenResponse,
+  FeiShuUserInfo,
+  FeiShuUserInfoResponse,
+} from '@/types/feishu';
+import type {
+  OpenIDAuthRequestParams,
+  OpenIDSuccessTokenResponse,
+  OpenIDToken,
+  OpenIDUserInfoSuccessResponse,
+} from '@/types/oidc';
+import type {
+  OAuth2AccessTokenRequest
+} from './types/oauth2';
 
 // JWT生成和验证函数
-async function generateIdToken(userInfo, clientId: string, nonce: string | null | undefined, env: Env) {
+async function generateIdToken(userInfo: FeiShuUserInfo, clientId: string, nonce: string | null | undefined, env: Env) {
   const now = Math.floor(Date.now() / 1000);
 
-  const payload = {
+  const payload: OpenIDToken = {
     // OIDC必需声明
     iss: env.ISSUER_BASE_URL,
     sub: userInfo.user_id,
@@ -63,15 +83,21 @@ export default {
 
     // auth端点：重定向到飞书登录
     if (url.pathname === '/auth') {
-      const feishuAuthUrl = new URL('https://open.feishu.cn/open-apis/authen/v1/index');
-      feishuAuthUrl.searchParams.set('app_id', env.FEISHU_APP_ID);
-      feishuAuthUrl.searchParams.set('redirect_uri', `${env.ISSUER_BASE_URL}/callback`);
-      feishuAuthUrl.searchParams.set('state', url.searchParams.get('state')!);
+      const searchParams = new URLSearchParams({
+        client_id: env.FEISHU_APP_ID,
+        redirect_uri: `${env.ISSUER_BASE_URL}/callback`,
+      } satisfies FeiShuAuthRequestParams)
+      const state = url.searchParams.get('state') as OpenIDAuthRequestParams['state']
+      if (state)
+        searchParams.set('state', state);
+      const feishuAuthUrl = new URL(FeiShuEndpoints.OAuth2Auth);
+      feishuAuthUrl.search = '?' + searchParams.toString();
       return Response.redirect(feishuAuthUrl.toString());
     }
 
     // callback端点：接收飞书的code并转发给客户端
     if (url.pathname === '/callback') {
+      // TODO: 是不是把整个search替换过去？或者foreach append过去
       const code = url.searchParams.get('code')!;  // 这是飞书生成的code
       const state = url.searchParams.get('state')!;
 
@@ -86,12 +112,15 @@ export default {
     // token端点
     // 用飞书的code换取token，并生成OIDC所需的token
     if (url.pathname === '/token' && request.method === 'POST') {
-      const formData = await request.formData();
+      const formData = await request.formData() as {
+        get<TKey extends keyof OAuth2AccessTokenRequest>(key: TKey): OAuth2AccessTokenRequest[TKey];
+      };
       const code = formData.get('code');  // 这是从客户端收到的飞书code
-      const clientId = formData.get('client_id') as string;
-      const nonce = formData.get('nonce') as string | null | undefined;
+      const clientId = formData.get('client_id')!;
+      const nonce = formData.get('nonce') as string | null | undefined; // 这个地方不对
 
       // 1. 先获取飞书的app_access_token
+      // Unknown step
       const appTokenResponse = await fetch('https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +132,7 @@ export default {
       const { app_access_token } = await appTokenResponse.json() as { app_access_token: string };
 
       // 2. 用飞书的code换取用户access_token
-      const userTokenResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/access_token', {
+      const userTokenResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/access_token', { // Invalid URL
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${app_access_token}`,
@@ -117,36 +146,49 @@ export default {
       const { access_token } = await userTokenResponse.json() as { access_token: string };
 
       // 3. 用access_token获取用户信息
-      const userInfoResponse = await fetch('https://open.feishu.cn/open-apis/authen/v1/user_info', {
+      const userInfoResponse = await fetch(FeiShuEndpoints.UserInfo, {
         headers: {
           'Authorization': `Bearer ${access_token}`
         }
       });
-      const userInfo = await userInfoResponse.json();
+      const userInfo = await userInfoResponse.json() as FeiShuUserInfoResponse;
 
       // 4. 生成OIDC的响应
       return new Response(JSON.stringify({
         access_token: access_token,        // 使用飞书的access_token
         token_type: 'Bearer',
         id_token: await generateIdToken(   // 我们生成的JWT格式的id_token
-          userInfo,
+          userInfo.data,
           clientId,
-          nonce,
+          nonce, // TODO: nonce应该是auth阶段发过来的
           env
         ),
         expires_in: 3600
-      }), {
+      } satisfies OpenIDSuccessTokenResponse), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
     // userinfo端点 - 直接转发到飞书
     if (url.pathname === '/userinfo') {
-      const response = await fetch('https://open.feishu.cn/open-apis/authen/v1/user_info', {
+      const response = await fetch(FeiShuEndpoints.UserInfo, {
         headers: request.headers
       });
 
-      return new Response(response.body, {
+      const userInfoFeiShu = await response.json() as FeiShuUserInfoResponse;
+
+      if (userInfoFeiShu.code !== 0) {
+        return new Response(userInfoFeiShu.msg, {
+          status: response.status,
+          headers: response.headers,
+        });
+      }
+
+      return new Response(JSON.stringify({
+        sub: userInfoFeiShu.data.user_id,
+        name: userInfoFeiShu.data.name,
+        email: userInfoFeiShu.data.email
+      } satisfies OpenIDUserInfoSuccessResponse), {
         headers: response.headers
       });
     }
