@@ -36,6 +36,11 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   // "vars": { "MY_VARIABLE": "production_value" }
+"vars": {
+"ISSUER_BASE_URL": "feishu-oidc.marcshen24.workers.dev",
+"JWT_PRIVATE_KEY_PEM": "MRHH-S5YChyGe_bWPcfRxtwHKgdcgdkMh6baAgbPnAP6XnT4UqiCg-Ytbg5bbJpBve_uRfyWI0LHSscCIIgY2zAytmYEu80CxnnYjprQJ4O-PSZrMmy7aAr4ToTbg2ozdA1iPJW7FdWwanv9_HdBQrl5bBsbbwhg7S1Tn_jE4GdWlYSmIwsxrW9jJ-d8leQHx3RP9Ui7ErfxnQd6vbM6eq7hSqUhvOtV2ZKUwag-DLOyP_HUchEwttDTzDDUQKoFkx5hYVVWo0EqIoCUTpPGmTS0vZe33kSTcLRPUHHIjYVYtoSHjPxX1ueqXU259tVVT7FGvpnOHU9wK0NCDYGOlQ",
+"JWT_KEY_ID": "L3FK5X0HLJIgAS6y3wDHP0SVeehAjdQvKefF1Etf27M"
+},
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
