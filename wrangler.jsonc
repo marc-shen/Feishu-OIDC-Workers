@@ -36,6 +36,17 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   // "vars": { "MY_VARIABLE": "production_value" }
+"vars":{
+"ISSUER_BASE_URL":
+"JWT_PUBLIC_KEY_JWK":{
+    "kty": "RSA",
+    "e": "AQAB",
+    "kid": "hbxG-bXax9GTTktLieR_n76YYXJDMTJflgDum_MKVBg",
+    "alg": "RS256",
+    "n": "mZb70itPqNfaduU2z8FCEZE2_XY-yESlEAiE4jzZxsiSwsJfuvjcs3d3qU0PNdE_bzGgUqtp0Vjx4GBsqBCbvC5Hp58FSVjemvFHv-2H8wg-uKMeMJh-NkHHXGrXKQ4ILoC0vtqO9zJKUnAQ8DdyEyVKLBHPcO_LX2ouxfN2TsAP6NvDRgReAy1_-j8yNFXFc--M7wBRd0waV91bGcNBesSzrSqqt6lZuMjyN3ppKjs1tTAtJC1ajPMd8VAKGtwWzFZaY8XbIQQiN-mujCZ_RjLLL0AWyrwFeFsGp8PDmwfMjsEwcT8xKG9ARMZOt9HCPV3lVRhLwUkza9b9IlpQaw"
+},
+"JWT_KEY_ID":"hbxG-bXax9GTTktLieR_n76YYXJDMTJflgDum_MKVBg"
+},
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
