@@ -36,17 +36,6 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   // "vars": { "MY_VARIABLE": "production_value" }
-"vars": {
-"ISSUER_BASE_URL": "feishu-oidc.marcshen24.workers.dev",
-"JWT_PUBLIC_KEY_JWK": {
-    "kty": "RSA",
-    "e": "AQAB",
-    "kid": "L3FK5X0HLJIgAS6y3wDHP0SVeehAjdQvKefF1Etf27M",
-    "alg": "RS256",
-    "n": "spwL0JnNXGmfLjbFjrWsv1jD1-ItfLsIU-EHG37dThERQME8xx_hPMr_u7FAdw8tAOtmlWr3QOtgjMsp3cP9fMfD7AxFsgX62H8Kbau5kTz6ieXtui_xDatK4WBNApHHL_hazCU_R4PDqP1u5RLy9ig9Y3bfV7W5ITtQ2W5yBNC-a3sxMEuMQ1DZ-GGOznLZJGZS4x8BKyhsGGINo9sK60hz0-lEwL0rN2fPzGUQ-zJwahB7JS7UFJH1svlp1EswV5Z9q2Hji_H3-ckXf2VTzAR3hi9RWB7DSGTvTLVXijCLVGuz-xg8vf7vDOf_DcxTlUMGONJ5CRi49A9Q71eCAQ"
-},
-"JWT_KEY_ID": "L3FK5X0HLJIgAS6y3wDHP0SVeehAjdQvKefF1Etf27M"
-},
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
