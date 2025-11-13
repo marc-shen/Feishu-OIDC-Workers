@@ -37,7 +37,7 @@
    */
   // "vars": { "MY_VARIABLE": "production_value" }
 "vars":{
-"ISSUER_BASE_URL":
+"ISSUER_BASE_URL": "https://feishu-oidc.marcshen24.workers.dev",
 "JWT_PUBLIC_KEY_JWK": {
     "kty": "RSA",
     "e": "AQAB",
