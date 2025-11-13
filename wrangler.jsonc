@@ -38,7 +38,7 @@
   // "vars": { "MY_VARIABLE": "production_value" }
 "vars":{
 "ISSUER_BASE_URL":
-"JWT_PUBLIC_KEY_JWK":{
+"JWT_PUBLIC_KEY_JWK": {
     "kty": "RSA",
     "e": "AQAB",
     "kid": "hbxG-bXax9GTTktLieR_n76YYXJDMTJflgDum_MKVBg",
